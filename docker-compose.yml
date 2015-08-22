@@ -1,21 +1,36 @@
+redisbroker:
+  image: redis
+  ports:
+    - "8003:6379"
 elasticsearch:
   build: elasticsearch/
   ports:
-    - "9200:9200"
-logstash:
+    - "8000:9200"
+logstashindexer:
   image: logstash:latest
+  privileged: true
   command: logstash -f /etc/logstash/conf.d/logstash.conf
   volumes:
-    - ./logstash/config:/etc/logstash/conf.d
-  ports:
-    - "5000:5000"
+    - ./logstash/config/indexer:/etc/logstash/conf.d
   links:
+    - redisbroker:redis
     - elasticsearch
+logstashshipper:
+  image: logstash:latest
+  privileged: true
+  command: logstash -f /etc/logstash/conf.d/logstash.conf
+  ports:
+    - "8001:5000"
+  volumes:
+     - ./logstash/config/shipper:/etc/logstash/conf.d
+  links:
+    - redisbroker:redis
 kibana:
   build: kibana/
+  privileged: true
   volumes:
     - ./kibana/config/kibana.yml:/opt/kibana/config/kibana.yml
   ports:
-    - "5601:5601"
+    - "8002:5601"
   links:
     - elasticsearch
